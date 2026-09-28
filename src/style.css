@@ -7,7 +7,8 @@
   --color-phosphor-bright: #b8ffcb;
   --color-alert: #ff6b6b;
   --font-term: "VT323", ui-monospace, "Cascadia Mono", Consolas, monospace;
-  --font-block: "Cascadia Mono", "DejaVu Sans Mono", Consolas, "Courier New", monospace;
+  --font-block:
+    "Cascadia Mono", "DejaVu Sans Mono", Consolas, "Courier New", monospace;
 }
 
 /* Temas alternativos (comando `color`) */
@@ -39,10 +40,13 @@ html[data-theme="white"] {
 }
 
 .vignette {
-  background: radial-gradient(ellipse at center, transparent 55%, rgb(0 0 0 / 0.65) 100%);
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    rgb(0 0 0 / 0.65) 100%
+  );
 }
 
-/* Banner ASCII usa uma fonte com caracteres de bloco de largura fixa */
 .banner {
   font-family: var(--font-block);
   line-height: 1;
@@ -70,17 +74,32 @@ html[data-theme="white"] {
 }
 
 @keyframes blink {
-  50% { opacity: 0; }
+  50% {
+    opacity: 0;
+  }
 }
 
 @keyframes flicker {
-  0%, 100% { opacity: 1; }
-  47% { opacity: 0.96; }
-  48% { opacity: 1; }
-  83% { opacity: 0.97; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  47% {
+    opacity: 0.96;
+  }
+  48% {
+    opacity: 1;
+  }
+  83% {
+    opacity: 0.97;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .crt { animation: none; }
-  .cursor-blink::after { animation: none; }
+  .crt {
+    animation: none;
+  }
+  .cursor-blink::after {
+    animation: none;
+  }
 }

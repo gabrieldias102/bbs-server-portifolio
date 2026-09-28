@@ -1,6 +1,6 @@
-# GBD-BBS
+# GBD Terminal
 
-Portfólio no estilo servidor BBS: tela verde de fósforo, scanlines e navegação por comandos de texto.
+Portfólio no estilo terminal retrô: tela verde de fósforo, scanlines e navegação por comandos de texto.
 
 ```bash
 npm install
@@ -10,7 +10,10 @@ npm run build    # gera dist/ (estático, pronto para GitHub Pages/Netlify/Verce
 
 ## Editando o conteúdo
 
-Tudo fica em [`src/filesystem.js`](src/filesystem.js): perfil, projetos e os arquivos `about.txt`, `skills.txt` e `contact.txt`.
+O perfil e os arquivos `about.txt` e `contact.txt` ficam em [`src/filesystem.js`](src/filesystem.js). Durante o login são carregados do site:
+
+- `~/projects` ← <https://gdias.dev.br/projects.json> (`[{ name, image, url }]`)
+- `~/skills.txt` ← <https://gdias.dev.br/stack.json> (`[{ title, items }]`)
 
 Dentro dos textos:
 
