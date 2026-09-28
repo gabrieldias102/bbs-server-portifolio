@@ -1,20 +1,25 @@
 import "./style.css";
-import { loadProjects, loadStack, profile, tree } from "./filesystem.js";
+import { loadProjects, loadStack, profile, tree } from "./filesystem";
+import type { DirNode, FsNode } from "./filesystem";
 
-const $ = (id) => document.getElementById(id);
+function $<T extends HTMLElement = HTMLElement>(id: string): T {
+  const node = document.getElementById(id);
+  if (!node) throw new Error(`elemento #${id} não encontrado`);
+  return node as T;
+}
 const screen = $("screen");
 const output = $("output");
 const promptLine = $("prompt-line");
 const promptLabel = $("prompt-label");
-const input = $("input");
+const input = $<HTMLInputElement>("input");
 const clock = $("clock");
 
 const HOST = "gbd";
 const USER = "guest";
 
 const state = {
-  cwd: [],
-  history: [],
+  cwd: [] as string[],
+  history: [] as string[],
   historyIndex: 0,
   booting: false,
   skip: false,
@@ -26,9 +31,10 @@ const state = {
 //  Sistema de arquivos
 // ------------------------------------------------------------
 
-const isDir = (node) => node?.type === "dir";
+const isDir = (node: FsNode | undefined): node is DirNode =>
+  node?.type === "dir";
 
-function resolve(path = ".") {
+function resolve(path = "."): { node: FsNode; segs: string[] } | null {
   const segs =
     path.startsWith("/") || path.startsWith("~") ? [] : [...state.cwd];
   for (const part of path.replace(/^~/, "").split("/")) {
@@ -36,7 +42,7 @@ function resolve(path = ".") {
     if (part === "..") segs.pop();
     else segs.push(part);
   }
-  let node = tree;
+  let node: FsNode = tree;
   for (const seg of segs) {
     if (!isDir(node) || !Object.hasOwn(node.children, seg)) return null;
     node = node.children[seg];
@@ -44,16 +50,21 @@ function resolve(path = ".") {
   return { node, segs };
 }
 
-const displayPath = (segs) => "~" + (segs.length ? "/" + segs.join("/") : "");
+const displayPath = (segs: string[]) =>
+  "~" + (segs.length ? "/" + segs.join("/") : "");
 
 // ------------------------------------------------------------
 //  Saída
 // ------------------------------------------------------------
 
-const sleep = (ms) =>
+const sleep = (ms: number) =>
   state.skip ? Promise.resolve() : new Promise((r) => setTimeout(r, ms));
 
-function el(tag, className = "", text = "") {
+function el<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  className = "",
+  text = "",
+): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
   if (className) node.className = className;
   if (text) node.textContent = text;
@@ -65,7 +76,7 @@ const scrollDown = () => (screen.scrollTop = screen.scrollHeight);
 const LINK_CLASS =
   "cursor-pointer text-phosphor-bright underline decoration-dotted underline-offset-4 hover:bg-phosphor hover:text-crt hover:no-underline focus-visible:bg-phosphor focus-visible:text-crt focus-visible:outline-none";
 
-function makeLink(label, target) {
+function makeLink(label: string, target: string) {
   if (target.startsWith("cmd:")) {
     const button = el("button", LINK_CLASS, label);
     button.type = "button";
@@ -85,11 +96,11 @@ function makeLink(label, target) {
 }
 
 // Converte "[texto](alvo)" em links; o resto vira texto puro.
-function renderInline(text) {
+function renderInline(text: string) {
   const frag = document.createDocumentFragment();
   const re = /\[([^\]]+)\]\(([^)]+)\)/g;
   let last = 0;
-  let match;
+  let match: RegExpExecArray | null;
   while ((match = re.exec(text))) {
     if (match.index > last) frag.append(text.slice(last, match.index));
     frag.append(makeLink(match[1], match[2]));
@@ -100,17 +111,17 @@ function renderInline(text) {
 }
 
 function print(text = "", className = "") {
-  for (const line of String(text).split("\n")) {
+  for (const line of text.split("\n")) {
     const div = el("div", `whitespace-pre-wrap break-words ${className}`);
-    div.append(line ? renderInline(line) : " ");
+    div.append(line ? renderInline(line) : " ");
     output.append(div);
   }
   scrollDown();
 }
 
-const error = (text) => print(text, "text-alert");
+const error = (text: string) => print(text, "text-alert");
 
-async function typeLine(text, className = "", delay = 28) {
+async function typeLine(text: string, className = "", delay = 28) {
   const div = el("div", `whitespace-pre-wrap ${className}`);
   output.append(div);
   for (const char of text) {
@@ -122,7 +133,7 @@ async function typeLine(text, className = "", delay = 28) {
 
 const promptText = () => `${USER}@${HOST}:${displayPath(state.cwd)}$ `;
 
-function echoCommand(raw) {
+function echoCommand(raw: string) {
   const div = el("div", "whitespace-pre-wrap break-words");
   div.append(el("span", "text-phosphor-bright", promptText()), raw);
   output.append(div);
@@ -144,7 +155,8 @@ function printBanner() {
   scrollDown();
 }
 
-const MENU = [
+// [tecla, rótulo, comando]
+const MENU: [string, string, string][] = [
   ["1", "sobre mim", "cat ~/about.txt"],
   ["2", "projetos", "cd ~/projects"],
   ["3", "habilidades", "cat ~/skills.txt"],
@@ -166,11 +178,12 @@ function printMenu() {
 //  Comandos
 // ------------------------------------------------------------
 
-function listDir(node, segs) {
+function listDir(node: DirNode, segs: string[]) {
   const entries = Object.entries(node.children);
   if (!entries.length) return print("(vazio)", "text-phosphor-dim");
 
-  const labelOf = ([name, child]) => (isDir(child) ? `${name}/` : name);
+  const labelOf = ([name, child]: [string, FsNode]) =>
+    isDir(child) ? `${name}/` : name;
   const width = Math.max(...entries.map((e) => labelOf(e).length));
   const indent = " ".repeat(12 + width + 2);
 
@@ -181,29 +194,33 @@ function listDir(node, segs) {
     const perms = isDir(child) ? "drwxr-xr-x" : "-rw-r--r--";
     const action = isDir(child) ? `cd ${path}` : `cat ${path}`;
     const pad = " ".repeat(width - label.length);
-    const project = child.project;
+    const project = isDir(child) ? child.project : undefined;
 
     print(
       `${perms}  [${label}](cmd:${action})${pad}  ${project ? project.name : ""}`,
     );
     if (project) {
-      const links = [
-        project.url && `[acessar ↗](${project.url})`,
-        `[info](cmd:cat ${path}/README.txt)`,
-      ].filter(Boolean);
+      const links = [`[info](cmd:cat ${path}/README.txt)`];
+      if (project.url) links.unshift(`[acessar ↗](${project.url})`);
       print(`${indent}${links.join("  ")}`, "text-phosphor-dim");
     }
   }
 }
 
-function findProject(arg) {
+function findProject(arg?: string) {
   const target = arg
     ? (resolve(arg) ?? resolve(`~/projects/${arg}`))
     : resolve(".");
-  return target?.node.project;
+  return isDir(target?.node) ? target.node.project : undefined;
 }
 
-const commands = {
+interface Command {
+  usage?: string;
+  desc: string;
+  run(args: string[]): void | Promise<void>;
+}
+
+const commands: Record<string, Command> = {
   help: {
     desc: "lista os comandos disponíveis",
     run() {
@@ -246,8 +263,8 @@ const commands = {
       if (!target) return error(`cd: ${path}: diretório não encontrado`);
       if (!isDir(target.node)) return error(`cd: ${path}: não é um diretório`);
       state.cwd = target.segs;
-      if (target.node.project)
-        print(target.node.children["README.txt"].content);
+      const readme = target.node.children["README.txt"];
+      if (target.node.project && readme?.type === "file") print(readme.content);
       else listDir(target.node, target.segs);
     },
   },
@@ -269,6 +286,7 @@ const commands = {
       const project = findProject(arg);
       if (!project) return error(`open: ${arg ?? "."}: projeto não encontrado`);
       const url = project.url;
+      if (!url) return error(`open: ${project.slug}: projeto sem endereço`);
       print(`Abrindo ${url} ...`, "text-phosphor-dim");
       window.open(url, "_blank", "noopener");
     },
@@ -303,7 +321,7 @@ const commands = {
     desc: "troca a cor do fósforo",
     run([theme]) {
       const themes = ["green", "amber", "white"];
-      if (!themes.includes(theme))
+      if (!theme || !themes.includes(theme))
         return error(`color: use ${themes.join(", ")}`);
       document.documentElement.dataset.theme = theme;
       try {
@@ -335,7 +353,7 @@ const commands = {
   },
 };
 
-const aliases = {
+const aliases: Record<string, string> = {
   dir: "ls",
   ll: "ls",
   type: "cat",
@@ -351,7 +369,7 @@ const aliases = {
   4: "cat ~/contact.txt",
 };
 
-const easterEggs = {
+const easterEggs: Record<string, () => void> = {
   sudo: () =>
     error(
       `${USER} não está no arquivo sudoers. Este incidente será reportado.`,
@@ -361,7 +379,7 @@ const easterEggs = {
     print("Você entrou no vim. Boa sorte para sair. (brincadeira, não entrou)"),
 };
 
-async function run(raw) {
+async function run(raw: string) {
   echoCommand(raw);
   const line = raw.trim();
   if (line) {
@@ -373,14 +391,14 @@ async function run(raw) {
   scrollDown();
 }
 
-async function dispatch(line) {
+async function dispatch(line: string) {
   let [name, ...args] = line.split(/\s+/);
   name = name.toLowerCase();
   if (Object.hasOwn(aliases, name)) {
     [name, ...args] = [...aliases[name].split(" "), ...args];
   }
   if (Object.hasOwn(commands, name)) return commands[name].run(args);
-  if (Object.hasOwn(easterEggs, name)) return easterEggs[name](args);
+  if (Object.hasOwn(easterEggs, name)) return easterEggs[name]();
   error(`${name}: comando não encontrado. Digite 'help' para ver os comandos.`);
 }
 
@@ -388,7 +406,7 @@ async function dispatch(line) {
 //  Autocompletar (TAB)
 // ------------------------------------------------------------
 
-function commonPrefix(words) {
+function commonPrefix(words: string[]) {
   let prefix = words[0];
   for (const word of words)
     while (!word.startsWith(prefix)) prefix = prefix.slice(0, -1);
@@ -397,10 +415,10 @@ function commonPrefix(words) {
 
 function complete() {
   const tokens = input.value.split(" ");
-  const current = tokens.at(-1);
+  const current = tokens[tokens.length - 1];
   let base = "";
   let fragment = current;
-  let candidates;
+  let candidates: string[];
 
   if (tokens.length === 1) {
     candidates = Object.keys(commands).filter((c) => c.startsWith(current));
@@ -436,16 +454,21 @@ function complete() {
 //  Login / boot
 // ------------------------------------------------------------
 
+interface RemoteSource {
+  path: string;
+  load: () => Promise<void>;
+}
+
 // Resolve com o erro (ou null) para não gerar rejeição sem tratamento
 // enquanto a animação de login ainda não chegou no await.
-const remote = [
+const remote: RemoteSource[] = [
   { path: "~/projects", load: loadProjects },
   { path: "~/skills.txt", load: loadStack },
 ];
-const fetchRemote = (source) =>
+const fetchRemote = (source: RemoteSource): Promise<Error | null> =>
   source.load().then(
     () => null,
-    (err) => err,
+    (err: unknown) => (err instanceof Error ? err : new Error(String(err))),
   );
 const loading = new Map(remote.map((source) => [source, fetchRemote(source)]));
 
@@ -469,8 +492,9 @@ async function login() {
   await sleep(300);
 
   for (const source of remote) {
-    if (!loading.has(source)) loading.set(source, fetchRemote(source));
-    const loadError = await loading.get(source);
+    let pending = loading.get(source);
+    if (!pending) loading.set(source, (pending = fetchRemote(source)));
+    const loadError = await pending;
     if (loadError) {
       loading.delete(source); // tenta de novo no próximo login
       error(

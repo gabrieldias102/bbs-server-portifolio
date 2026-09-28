@@ -5,14 +5,14 @@ Portfólio no estilo terminal retrô: tela verde de fósforo, scanlines e navega
 ```bash
 npm install
 npm run dev      # desenvolvimento
-npm run build    # gera dist/ (estático, pronto para GitHub Pages/Netlify/Vercel)
+npm run build    # checa os tipos e gera dist/ (estático, pronto para GitHub Pages/Netlify/Vercel)
 ```
 
 ## Editando o conteúdo
 
-O perfil e os arquivos `about.txt` e `contact.txt` ficam em [`src/filesystem.js`](src/filesystem.js). Durante o login são carregados do site:
+O perfil e os arquivos `about.txt` e `contact.txt` ficam em [`src/filesystem.ts`](src/filesystem.ts). Durante o login são carregados do site:
 
-- `~/projects` ← <https://gdias.dev.br/projects.json> (`[{ name, image, url }]`)
+- `~/projects` ← <https://gdias.dev.br/projects.json> (`[{ name, url }]`)
 - `~/skills.txt` ← <https://gdias.dev.br/stack.json> (`[{ title, items }]`)
 
 Dentro dos textos:
