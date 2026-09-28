@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  --color-crt: #020a04;
+  --color-phosphor: #33ff66;
+  --color-phosphor-dim: #1c9e40;
+  --color-phosphor-bright: #b8ffcb;
+  --color-alert: #ff6b6b;
+  --font-term: "VT323", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --font-block: "Cascadia Mono", "DejaVu Sans Mono", Consolas, "Courier New", monospace;
+}
+
+/* Temas alternativos (comando `color`) */
+html[data-theme="amber"] {
+  --color-phosphor: #ffb000;
+  --color-phosphor-dim: #a87400;
+  --color-phosphor-bright: #ffe0a0;
+}
+html[data-theme="white"] {
+  --color-phosphor: #d8e4dc;
+  --color-phosphor-dim: #7d8a82;
+  --color-phosphor-bright: #ffffff;
+}
+
+.crt {
+  text-shadow:
+    0 0 1px currentColor,
+    0 0 6px color-mix(in srgb, currentColor 55%, transparent);
+  animation: flicker 6s infinite steps(1);
+}
+
+.scanlines {
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 2px,
+    rgb(0 0 0 / 0.28) 3px
+  );
+}
+
+.vignette {
+  background: radial-gradient(ellipse at center, transparent 55%, rgb(0 0 0 / 0.65) 100%);
+}
+
+/* Banner ASCII usa uma fonte com caracteres de bloco de largura fixa */
+.banner {
+  font-family: var(--font-block);
+  line-height: 1;
+}
+
+#input {
+  caret-color: var(--color-phosphor);
+  caret-shape: block;
+}
+
+::selection {
+  background: var(--color-phosphor);
+  color: var(--color-crt);
+  text-shadow: none;
+}
+
+#screen {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-phosphor-dim) transparent;
+}
+
+.cursor-blink::after {
+  content: "█";
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  47% { opacity: 0.96; }
+  48% { opacity: 1; }
+  83% { opacity: 0.97; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crt { animation: none; }
+  .cursor-blink::after { animation: none; }
+}
