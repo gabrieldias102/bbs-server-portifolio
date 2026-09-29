@@ -1,7 +1,7 @@
 export const profile = {
   name: "Gabriel Bastians Dias",
   handle: "gabriel",
-  role: "Desenvolvedor de Software",
+  role: "Desenvolvedor Full Stack",
   location: "Brasil",
 };
 
